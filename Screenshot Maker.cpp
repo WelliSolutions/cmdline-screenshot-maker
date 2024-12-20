@@ -23,18 +23,29 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 					  LPWSTR    lpCmdLine,
 					  int       nCmdShow)
 {
+	bool allscreens = false;
+	for (int i = 1; i < __argc; i++)
+	{
+		if (wcscmp(__wargv[i], L"-all") == 0 || wcscmp(__wargv[i], L"-a") == 0)
+		{
+			allscreens = true;
+		}
+	}
+
 	GdiplusStartupInput gdiplusStartupInput;
 	ULONG_PTR gdiplusToken;
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
 	HWND desktop = GetDesktopWindow();
-	HDC desktopdc = GetDC(desktop);
+	HDC desktopdc = allscreens ? CreateDC(TEXT("DISPLAY"), NULL, NULL, NULL): GetDC(desktop);
 	HDC mydc = CreateCompatibleDC(desktopdc);
-	int width = GetSystemMetrics(SM_CXSCREEN);
-	int height = GetSystemMetrics(SM_CYSCREEN);
+	int width = GetSystemMetrics(allscreens? SM_CXVIRTUALSCREEN :SM_CXSCREEN);
+	int height = GetSystemMetrics(allscreens ? SM_CYVIRTUALSCREEN : SM_CYSCREEN);
+	int top = allscreens?GetSystemMetrics(SM_YVIRTUALSCREEN):0;
+	int left = allscreens ? GetSystemMetrics(SM_XVIRTUALSCREEN):0;
 	HBITMAP mybmp = CreateCompatibleBitmap(desktopdc, width, height);
 	HBITMAP oldbmp = (HBITMAP)SelectObject(mydc, mybmp);
-	BitBlt(mydc,0,0,width,height,desktopdc,0,0, SRCCOPY|CAPTUREBLT);
+	BitBlt(mydc,0,0,width,height,desktopdc,left,top, SRCCOPY|CAPTUREBLT);
 	SelectObject(mydc, oldbmp);
 
 	bool defaultfn = true;
@@ -56,6 +67,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 				"  -e, -encoder png          file encoder: bmp/jpeg/gif/tiff/png (default: png)\n"
 				"  -q, -quality 100          file quality for jpeg (between 0 and 100)\n"
 				"  -r, -resize 50            image size, % of the original size (between 1 and 99)\n\n"
+				"  -a, -all                  capture all screens\n\n"
 				"Copyright (c) 2009, The Mozilla Foundation\n";
 			return 0;
 		}
